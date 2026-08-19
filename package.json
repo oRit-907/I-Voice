@@ -1,0 +1,16 @@
+{
+  "name": "i-voice",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Tooling for the I-Voice FiveM resource. The resource itself needs no Node runtime \u2014 this is only used to build and test the NUI.",
+  "scripts": {
+    "build:ui": "npm --prefix voice-ui run build",
+    "install:ui": "npm --prefix voice-ui install",
+    "test": "bash tests/run.sh",
+    "test:ui": "node tests/ui-smoke.mjs",
+    "test:server": "lua5.4 tests/server-logic.lua"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.1"
+  }
+}
