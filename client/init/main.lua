@@ -41,17 +41,19 @@ function setVolume(volume, volumeType)
 	volume = clamp(volume, 0, 100)
 	local normalised = volume / 100
 
+	-- The state bag carries the 0-100 value the convars and the UI use; the
+	-- local table keeps the 0-1 float Mumble's volume override expects.
 	if volumeType then
 		if volumes[volumeType] == nil then
 			return logger.warn('setVolume got an invalid volume type "%s"', tostring(volumeType))
 		end
 		volumes[volumeType] = normalised
-		LocalPlayer.state:set(volumeType, normalised, true)
+		LocalPlayer.state:set(volumeType, volume, true)
 		setSetting(volumeSettingKeys[volumeType], volume)
 	else
 		for bucket in pairs(volumes) do
 			volumes[bucket] = normalised
-			LocalPlayer.state:set(bucket, normalised, true)
+			LocalPlayer.state:set(bucket, volume, true)
 			setSetting(volumeSettingKeys[bucket], volume)
 		end
 	end

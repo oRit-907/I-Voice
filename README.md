@@ -21,7 +21,8 @@ megaphone module, multi-channel radios, and a test suite.
 | **Channel limits & richer checks** | `setChannelLimit`, channel checks that receive the channel and can't crash the resource when they error. |
 | **Reconnect resync** | A Mumble reconnect replays your channels instead of leaving you silently deaf. |
 | **Rebuilt UI toolchain** | Vue 3 on Vite instead of Vue CLI 4 — builds on current Node, and ships one 88 kB bundle instead of ~700 kB of chunks and source maps. |
-| **Tests** | Lua syntax checks, a stubbed server-logic suite, and a headless-Chromium smoke test of the built UI. |
+| **pma-voice compatibility** | Legacy events, net events, globals and KVP kept in step, plus an export shim so `exports['pma-voice']` keeps resolving. See [COMPATIBILITY.md](COMPATIBILITY.md). |
+| **Tests** | Lua syntax checks, stubbed server-logic and compat-shim suites, and a headless-Chromium smoke test of the built UI. |
 
 Bugs fixed along the way are listed in [Fixed from pma-voice](#fixed-from-pma-voice).
 
@@ -42,10 +43,24 @@ Please do not override `NetworkSetTalkerProximity`, `MumbleSetAudioInputDistance
 `MumbleSetAudioOutputDistance` or `NetworkSetVoiceActive` in any of your other scripts, as
 there have been cases where it breaks the voice system.
 
-I-Voice `provides` the `pma-voice`, `mumble-voip` and `tokovoip` resource names, and still
-accepts the `pma-voice:setPlayerRadio` / `pma-voice:setPlayerCall` net events, so most
-resources written against those keep working. Internal events were renamed to the `ivoice:`
-prefix — if you listen for `pma-voice:radioActive`, switch to `ivoice:radioActive`.
+## Running scripts written for pma-voice
+
+I-Voice is a drop-in replacement. Every pma-voice export exists under the same name and
+signature, every event it raised is still raised under its old name, and every net event it
+listened for is still accepted.
+
+The one thing that isn't automatic is the **export namespace**: `exports['pma-voice']:...`
+resolves by resource name, so either name this folder `pma-voice`, or copy the shim in
+[`compat/pma-voice`](compat/pma-voice) into your resources directory alongside it:
+
+```cfg
+ensure I-Voice
+ensure pma-voice   # the shim, forwards exports/ to I-Voice
+```
+
+**[COMPATIBILITY.md](COMPATIBILITY.md) has the full matrix**, including the two signature
+quirks that are handled for you and the one internal event set that is deliberately not
+aliased.
 
 ## Credits
 
@@ -138,6 +153,8 @@ Set them with `setr [voice_configOption] [int]` or `setr [voice_configOption] "[
 | voice_debugMode | 0 | 1 for basic logs, 4 for verbose logs. | int |
 | voice_externalDisallowJoin | 0 | Blocks players joining the server. Only use this if the server is acting as an external Mumble server. | int |
 | voice_hideEndpoints | 1 | Hides the Mumble address in logs. *You should only care to hide this for an external server.* | int |
+| voice_warnPmaVoiceCompat | 1 | Warns at startup when `exports['pma-voice']` won't resolve. See [COMPATIBILITY.md](COMPATIBILITY.md). | int |
+| voice_resourceName | *(auto)* | Read by the pma-voice shim to locate I-Voice. Only needed if auto-detection fails. | string |
 
 ---
 
@@ -296,15 +313,17 @@ Designed for third-party integration; emitted only to the local client.
 - The `onResourceStop` handler in the server radio module referenced an out-of-scope
   variable, throwing whenever any resource stopped.
 - `overrideRadioNameGetter` took a spurious `channel` argument and its type check accepted
-  anything that wasn't a function reference.
+  anything that wasn't a function reference. The old two-argument form is still accepted.
 - The proximity loop read `voice_refreshRate`, but the manifest only declared
   `voice_uiRefreshRate`; both are honoured now.
 - Dead `isTarget` branch in the proximity loop, and the local player was distance-checked
   against themselves every tick.
 - `-radiotalk` mixed `and`/`or` precedence, so it could fire with no channel set.
 - Changing call channel repeatedly stacked one push-to-talk thread per change.
-- Volume state bags were seeded with 0-100 ints server side but written as 0-1 floats
-  client side.
+- Volume state bags were seeded with 0-100 ints server side but overwritten with 0-1 floats
+  client side, so the same bag meant different things depending on whether the player had
+  touched their volume. They are 0-100 everywhere now; `getRadioVolume` / `getCallVolume`
+  still return a 0-1 float as before.
 - A channel check that threw took the join with it; checks are now sandboxed.
 - Empty radio and call channels were never reclaimed.
 - The radio animation dictionary could spin forever if it failed to load.

@@ -58,7 +58,3 @@ end)
 AddEventHandler('ivoice:settingsCallback', function(cb)
 	cb(Cfg)
 end)
--- compatibility with resources still listening for the pma-voice name
-AddEventHandler('pma-voice:settingsCallback', function(cb)
-	cb(Cfg)
-end)

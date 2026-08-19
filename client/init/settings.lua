@@ -67,9 +67,10 @@ local function load()
 		if wasDefaulted.micClicks then
 			settings.micClicks = legacy == 'true'
 			SetResourceKvp(KVP_PREFIX .. 'micClicks', legacy)
-			logger.info('Migrated the pma-voice mic click preference (%s) to I-Voice', legacy)
+			logger.info('Adopted the pma-voice mic click preference (%s)', legacy)
 		end
-		DeleteResourceKvp(LEGACY_MIC_CLICK_KEY)
+		-- The legacy key is left in place and kept in step by client/compat.lua,
+		-- so a player who goes back to a pma-voice server keeps their choice.
 	end
 end
 

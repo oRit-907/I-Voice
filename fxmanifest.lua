@@ -29,6 +29,10 @@ client_scripts {
 server_scripts {
 	'server/main.lua',
 	'server/module/*.lua',
+	-- compat.lua bridges the pma-voice event names, so it loads after the
+	-- modules whose functions it forwards to. Named rather than globbed so it
+	-- can't pull main.lua in a second time.
+	'server/compat.lua',
 	'server/*.js',
 }
 
@@ -43,12 +47,14 @@ files {
 
 ui_page 'ui/index.html'
 
+-- 'pma-voice' is deliberately absent: the compat shim in compat/pma-voice takes
+-- that name for itself, and two resources can't provide the same one. Name this
+-- folder 'pma-voice' or start the shim to satisfy scripts that depend on it.
 provides {
 	'mumble-voip',
 	'tokovoip',
 	'toko-voip',
 	'tokovoip_script',
-	'pma-voice',
 }
 
 convar_category 'I-Voice' {
