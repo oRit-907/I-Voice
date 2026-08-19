@@ -97,10 +97,6 @@ RegisterNetEvent('ivoice:setPlayerCall', function(callChannel)
 	setPlayerCall(source, callChannel)
 end)
 
--- pma-voice compatibility
-RegisterNetEvent('pma-voice:setPlayerCall', function(callChannel)
-	setPlayerCall(source, callChannel)
-end)
 
 --- Broadcasts a player's transmit state to the rest of their call.
 function setTalkingOnCall(talking)

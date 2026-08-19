@@ -36,6 +36,10 @@ echo "== Server logic =="
 lua5.4 tests/server-logic.lua || status=1
 
 echo
+echo "== pma-voice compat shim =="
+lua5.4 tests/compat-shim.lua || status=1
+
+echo
 echo "== UI smoke =="
 node tests/ui-smoke.mjs || status=1
 

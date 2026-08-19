@@ -79,11 +79,19 @@ end
 local radioNameGetter = radioNameGetter_orig
 
 --- Overrides how a player's radio display name is resolved.
+--- pma-voice took `(channel, cb)` — the channel was never used — so both that
+--- shape and the single-argument one are accepted.
 --- @param cb function receives `(source)` and returns a string
-function overrideRadioNameGetter(cb)
+function overrideRadioNameGetter(cb, legacyCb)
+	if legacyCb ~= nil and (isFunctionRef(legacyCb) or type(legacyCb) == 'function') then
+		logger.info('%s called overrideRadioNameGetter with the pma-voice (channel, cb) signature; the channel is ignored', GetInvokingResource() or 'I-Voice')
+		cb = legacyCb
+	end
+
 	if not isFunctionRef(cb) and type(cb) ~= 'function' then
 		error(("'cb' expected 'function' got '%s'"):format(type(cb)))
 	end
+
 	radioNameGetter = cb
 	logger.info('%s overrode the radio name getter', GetInvokingResource() or 'I-Voice')
 end
@@ -298,10 +306,6 @@ RegisterNetEvent('ivoice:removeSecondaryRadio', function(channel)
 	removePlayerSecondaryRadio(source, channel)
 end)
 
--- pma-voice compatibility for resources still triggering the old net events
-RegisterNetEvent('pma-voice:setPlayerRadio', function(radioChannel)
-	setPlayerRadio(source, radioChannel)
-end)
 
 --#endregion
 

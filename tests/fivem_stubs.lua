@@ -18,6 +18,16 @@ M.eventHandlers = {}
 M.exported = {}
 --- Player state bags, keyed by server id.
 M.playerStates = {}
+--- Resource states, for the compatibility layer's probing.
+M.resourceStates = {}
+--- Exports belonging to *other* resources, as `[resource][export] = fn`.
+M.remoteExports = {}
+--- Manifest metadata, as `[resource][key] = value`.
+M.resourceMetadata = {}
+--- Resources the scanner walks, in order.
+M.resourceList = {}
+--- Every call made through the remote export proxy, in order.
+M.remoteCalls = {}
 
 M.convars = {
 	voice_enableRadios = '1',
@@ -116,11 +126,50 @@ function M.install()
 		table.insert(M.eventHandlers[name], cb)
 	end
 
+	-- `exports[res]:fn(a)` desugars to `exports[res].fn(exports[res], a)`, so the
+	-- proxy must swallow the receiver exactly as the real one does. Getting that
+	-- wrong is the whole reason the shim has a test.
 	_G.exports = setmetatable({}, {
 		__call = function(_, name, fn)
 			M.exported[name] = fn
 		end,
+		__index = function(_, resourceName)
+			local proxy = {}
+			return setmetatable(proxy, {
+				__index = function(_, exportName)
+					return function(receiver, ...)
+						if receiver ~= proxy then
+							error(('export %s on %s was called without its receiver'):format(exportName, resourceName))
+						end
+						local remote = M.remoteExports[resourceName]
+						local fn = remote and remote[exportName]
+						if not fn then
+							error(('no export %s on %s'):format(exportName, resourceName))
+						end
+						M.remoteCalls[#M.remoteCalls + 1] = { resource = resourceName, name = exportName, args = { ... } }
+						return fn(...)
+					end
+				end,
+			})
+		end,
 	})
+
+	_G.GetNumResources = function()
+		return #M.resourceList
+	end
+
+	_G.GetResourceByFindIndex = function(index)
+		return M.resourceList[index + 1]
+	end
+
+	_G.GetResourceMetadata = function(resource, key)
+		local metadata = M.resourceMetadata[resource]
+		return metadata and metadata[key] or nil
+	end
+
+	_G.GetResourceState = function(resource)
+		return M.resourceStates[resource] or 'missing'
+	end
 
 	local noop = function() end
 	_G.Wait = noop

@@ -16,7 +16,11 @@ the state bag.
 | `megaphoneActive` | Whether the player has a megaphone raised | boolean |
 | `voiceIntent` | `'speech'` or `'music'` | string |
 | `muted` | Whether the player is server-muted | boolean |
-| `radio` / `phone` / `megaphone` | The player's volume for that bucket | number |
+| `radio` / `phone` / `megaphone` | The player's volume for that bucket, 0-100 | number |
+
+> **Changed from pma-voice:** these bags were seeded with the 0-100 convar value server side
+> but overwritten with a 0-1 float client side. They are 0-100 on both sides now. The
+> `getRadioVolume` / `getCallVolume` exports still return a 0-1 float.
 
 ## Example for Proximity
 

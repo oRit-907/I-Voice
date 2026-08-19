@@ -8,7 +8,8 @@
     "install:ui": "npm --prefix voice-ui install",
     "test": "bash tests/run.sh",
     "test:ui": "node tests/ui-smoke.mjs",
-    "test:server": "lua5.4 tests/server-logic.lua"
+    "test:server": "lua5.4 tests/server-logic.lua",
+    "test:compat": "lua5.4 tests/compat-shim.lua"
   },
   "devDependencies": {
     "playwright": "^1.49.1"

@@ -1,0 +1,58 @@
+--[[
+	Client half of the shim: re-exports pma-voice's client API, plus the I-Voice
+	additions so this resource is a full stand-in rather than a partial one.
+]]
+
+forwardExports({
+	-- pma-voice's client surface
+	'setVoiceProperty',
+	'SetMumbleProperty',
+	'SetTokoProperty',
+	'setRadioChannel',
+	'SetRadioChannel',
+	'addPlayerToRadio',
+	'removePlayerFromRadio',
+	'setCallChannel',
+	'SetCallChannel',
+	'addPlayerToCall',
+	'removePlayerFromCall',
+	'setRadioVolume',
+	'getRadioVolume',
+	'setCallVolume',
+	'getCallVolume',
+	'toggleMutePlayer',
+	'toggleRadioAnim',
+	'getRadioAnimState',
+	'setAllowProximityCycleState',
+	'overrideProximityRange',
+	'clearProximityOverride',
+	'overrideProximityCheck',
+	'resetProximityCheck',
+	'setVoiceState',
+
+	-- I-Voice additions, so a script can migrate without swapping namespace
+	'getVoiceState',
+	'getRadioChannel',
+	'getRadioChannels',
+	'getRadioTalkers',
+	'isOnRadioChannel',
+	'addSecondaryRadioChannel',
+	'removeSecondaryRadioChannel',
+	'leaveAllRadioChannels',
+	'getCallChannel',
+	'getCallMembers',
+	'setMegaphoneActive',
+	'setMegaphoneAllowed',
+	'isMegaphoneActive',
+	'isMegaphoneAllowed',
+	'setMegaphoneVolume',
+	'getMegaphoneVolume',
+	'getVoiceSetting',
+	'setVoiceSetting',
+	'getVoiceSettings',
+	'setSettingsOpen',
+	'isSettingsOpen',
+	'isPlayerBlocked',
+	'getBlockedPlayers',
+	'clearBlockedPlayers',
+})

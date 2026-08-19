@@ -13,6 +13,7 @@ dofile('server/main.lua')
 dofile('server/module/radio.lua')
 dofile('server/module/phone.lua')
 dofile('server/module/megaphone.lua')
+dofile('server/compat.lua')
 
 local failures = 0
 local group = ''
@@ -232,6 +233,83 @@ stubs.fireNet('ivoice:requestSync', 40)
 check('megaphones are replayed', countClientEvents('ivoice:syncMegaphones', 40) == 1)
 check('both radio channels are replayed', countClientEvents('ivoice:syncRadioData', 40) == 2)
 check('the call is replayed', countClientEvents('ivoice:syncCallData', 40) == 1)
+
+--#endregion
+
+--#region pma-voice compatibility
+
+describe('pma-voice compatibility')
+stubs.reset()
+
+-- the legacy net events must reach the same handlers as the ivoice: ones
+stubs.fireNet('pma-voice:setPlayerRadio', 50, 900)
+check('legacy setPlayerRadio joins the channel', voiceData[50].radio == 900)
+
+stubs.fireNet('pma-voice:setPlayerRadio', 51, 900)
+stubs.reset()
+stubs.fireNet('pma-voice:setTalkingOnRadio', 50, true)
+check('legacy setTalkingOnRadio broadcasts', countClientEvents('ivoice:setTalkingOnRadio', 51) == 1)
+check('legacy setTalkingOnRadio records state', getPlayersInRadioChannel(900)[50] == true)
+
+stubs.reset()
+stubs.fireNet('pma-voice:setPlayerCall', 50, 901)
+stubs.fireNet('pma-voice:setPlayerCall', 51, 901)
+check('legacy setPlayerCall joins the call', voiceData[50].call == 901)
+
+stubs.reset()
+stubs.fireNet('pma-voice:setTalkingOnCall', 50, true)
+check('legacy setTalkingOnCall broadcasts', countClientEvents('ivoice:setTalkingOnCall', 51) == 1)
+
+-- each legacy net event must be registered exactly once, or handlers run twice
+for _, name in ipairs({
+	'pma-voice:setPlayerRadio',
+	'pma-voice:setPlayerCall',
+	'pma-voice:setTalkingOnRadio',
+	'pma-voice:setTalkingOnCall',
+}) do
+	check(('%s is registered'):format(name), stubs.netEvents[name] ~= nil)
+end
+
+stubs.reset()
+stubs.fireNet('ivoice:setPlayerRadio', 52, 902)
+check('the ivoice: name is not double-registered', voiceData[52].radio == 902
+	and countClientEvents('ivoice:syncRadioData', 52) == 1)
+
+-- events raised by I-Voice are mirrored under their old names
+stubs.reset()
+TriggerEvent('ivoice:playerMuted', 60, 1, true, 300)
+local mirrored = 0
+for _, event in ipairs(stubs.serverEvents) do
+	if event.name == 'pma-voice:playerMuted' then
+		mirrored = mirrored + 1
+		check('the mirrored payload is unchanged', event.args[1] == 60 and event.args[2] == 1
+			and event.args[3] == true and event.args[4] == 300)
+	end
+end
+check('playerMuted is mirrored exactly once', mirrored == 1)
+
+-- overrideRadioNameGetter has to accept both pma-voice's (channel, cb) and (cb)
+stubs.reset()
+stubs.exported.overrideRadioNameGetter(1, function(src) return 'Legacy' .. src end)
+stubs.fireNet('ivoice:setPlayerRadio', 61, 903)
+stubs.fireNet('ivoice:setPlayerRadio', 62, 903)
+local named = stubs.clientEventsNamed('ivoice:addPlayerToRadio', 61)[1]
+check('the legacy (channel, cb) signature is honoured', named.args[3] == 'Legacy62')
+
+stubs.exported.overrideRadioNameGetter(function(src) return 'Modern' .. src end)
+stubs.reset()
+stubs.fireNet('ivoice:setPlayerRadio', 63, 903)
+named = stubs.clientEventsNamed('ivoice:addPlayerToRadio', 61)[1]
+check('the single-argument signature still works', named.args[3] == 'Modern63')
+stubs.exported.resetRadioNameGetter()
+
+-- the compat mode probe
+describe('pma-voice compatibility: mode detection')
+stubs.resourceStates = {}
+check('no shim and a different name reports events-only', getPmaVoiceCompatMode() == 'events-only')
+
+stubs.resourceStates['pma-voice'] = 'started'
+check('a running shim is detected', getPmaVoiceCompatMode() == 'shim')
 
 --#endregion
 
